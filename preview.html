@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喝水提醒 · 预览版（1260×2800 竖屏）</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#06101f; }
+  #viewport { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  #stage { width:1260px; height:2800px; position:relative; transform-origin:center center;
+           background:linear-gradient(180deg,#0a2a4a 0%,#0d3b66 30%,#1565C0 72%,#2196F3 100%); overflow:hidden; }
+
+  /* 底部动态波浪（背景） */
+  .bgwave { position:absolute; bottom:0; left:0; width:1260px; height:520px; }
+  .bgwave path { fill:#ffffff; }
+  .bw1 { opacity:.10; animation: drift 11s linear infinite; }
+  .bw2 { opacity:.07; animation: drift 16s linear infinite reverse; }
+  @keyframes drift { from{transform:translateX(0)} to{transform:translateX(-700px)} }
+
+  /* 头部 */
+  .hd-title { position:absolute; left:60px; top:64px; color:#fff; font-size:60px; font-weight:800; letter-spacing:2px; }
+  .hd-sub { position:absolute; left:64px; top:148px; color:#cfe6ff; font-size:28px; opacity:.9; }
+  .hd-date { position:absolute; right:60px; top:80px; color:#dff0ff; font-size:28px; text-align:right; opacity:.92; }
+
+  /* 顶部动态水球 */
+  .tank-cap { position:absolute; left:0; top:250px; width:1260px; text-align:center; color:#eaf6ff; font-size:30px; opacity:.85; }
+  #tankWrap { position:absolute; left:220px; top:300px; width:820px; height:820px; }
+  .tank-center { position:absolute; left:220px; top:300px; width:820px; height:820px; pointer-events:none; }
+  .tank-center .tc-cups { position:absolute; left:0; top:360px; width:820px; text-align:center; font-size:130px; font-weight:800; color:#fff; text-shadow:0 4px 18px rgba(0,40,90,.45); }
+  .tank-center .tc-sub { position:absolute; left:0; top:510px; width:820px; text-align:center; font-size:36px; color:#eaf6ff; }
+  @keyframes waves { from{transform:translateX(0)} to{transform:translateX(-760px)} }
+  .waves { animation: waves 4s linear infinite; }
+  .waves.slow { animation-duration:6.5s; }
+  @keyframes bubble { 0%{transform:translateY(0);opacity:0} 15%{opacity:.6} 100%{transform:translateY(-360px);opacity:0} }
+  .bub { animation: bubble 4s ease-in infinite; }
+
+  /* 数据卡 */
+  .card { position:absolute; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18);
+          border-radius:28px; backdrop-filter:blur(4px); }
+  #cardStat { left:50px; top:1180px; width:1160px; height:240px; padding:30px 46px; display:flex; align-items:center; }
+  #cardStat .big { font-size:120px; font-weight:800; color:#fff; line-height:1; }
+  #cardStat .unit { font-size:44px; color:#dff0ff; margin-left:14px; }
+  #cardStat .right { margin-left:auto; text-align:right; color:#dff0ff; font-size:32px; }
+  #cardStat .right b { color:#fff; font-size:50px; }
+
+  /* 快速操作：+1杯 与 打卡 放在一起 */
+  .sec-h { position:absolute; left:60px; color:#eaf6ff; font-size:34px; font-weight:700; letter-spacing:1px; }
+  #lblQuick { top:1470px; }
+  .act-group { position:absolute; left:50px; top:1520px; width:1160px; height:200px; display:flex; gap:40px; }
+  .act { flex:1; border-radius:28px; font-size:50px; font-weight:800; cursor:pointer; border:none;
+         display:flex; align-items:center; justify-content:center; gap:16px; transition:.15s; }
+  .act:active { transform:scale(.97); }
+  .act.primary { background:linear-gradient(135deg,#42A5F5,#1565C0); color:#fff; box-shadow:0 14px 36px rgba(13,71,161,.45); }
+  .act.ghost { background:rgba(255,255,255,.14); color:#fff; border:2px solid rgba(255,255,255,.45); }
+  .act small { font-size:26px; font-weight:600; opacity:.9; }
+
+  /* 每杯容量自定义 */
+  #lblCap { top:1790px; }
+  #capRow { position:absolute; left:50px; top:1840px; width:1160px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  #capInput { width:220px; height:86px; border-radius:18px; border:2px solid rgba(255,255,255,.4); background:rgba(255,255,255,.12);
+              color:#fff; font-size:40px; text-align:center; }
+  .chip { height:86px; padding:0 30px; border-radius:18px; border:2px solid rgba(255,255,255,.4); background:rgba(255,255,255,.10);
+          color:#eaf6ff; font-size:32px; cursor:pointer; }
+  .chip.on { background:#fff; color:#0d3b66; border-color:#fff; font-weight:700; }
+
+  /* 今日一句 */
+  #cardQuote { left:50px; top:2080px; width:1160px; height:240px; padding:30px 46px; }
+  #cardQuote .qh { color:#bfe0ff; font-size:28px; font-weight:700; }
+  #cardQuote .qb { color:#fff; font-size:38px; line-height:1.6; margin-top:12px; }
+
+  /* 底部工具栏：手动输入 / 查看记录（与 +1·打卡 分离） */
+  #toolbar { position:absolute; left:50px; top:2500px; width:1160px; height:240px; display:grid; grid-template-columns:1fr 1fr; gap:30px;
+             background:rgba(0,0,0,.18); border-radius:26px; padding:30px; }
+  .tool { height:84px; border-radius:18px; border:2px solid rgba(255,255,255,.4); background:rgba(255,255,255,.10);
+          color:#eaf6ff; font-size:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:14px; }
+  .tool.solid { background:rgba(255,255,255,.9); color:#0d3b66; border-color:#fff; font-weight:700; }
+  #sw { width:90px; height:50px; border-radius:30px; background:#bbdefb; position:relative; transition:.2s; }
+  #sw.off { background:#5b6b80; }
+  #sw span { position:absolute; top:4px; right:4px; width:42px; height:42px; background:#fff; border-radius:50%; transition:.2s; }
+  #sw.off span { right:44px; }
+
+  /* 记录页覆盖层（同样 1260×2800 竖屏） */
+  #screenRec { position:absolute; inset:0; display:none; background:linear-gradient(180deg,#0a2a4a,#1565C0); }
+  #screenRec.show { display:block; }
+  #recBack { position:absolute; left:50px; top:60px; color:#fff; font-size:40px; cursor:pointer; }
+  #recTitle { position:absolute; left:180px; top:64px; color:#fff; font-size:54px; font-weight:800; }
+  .rec-ov { position:absolute; left:50px; top:200px; width:1160px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.2);
+            border-radius:28px; padding:40px; color:#fff; }
+  .rec-ov .oh { color:#bfe0ff; font-size:30px; font-weight:700; }
+  .rec-ov .ob { font-size:104px; font-weight:800; margin-top:10px; }
+  .rec-ov .ob small { font-size:42px; font-weight:400; }
+  .rec-ov .om { font-size:34px; color:#dff0ff; margin-left:18px; }
+  .rec-ov .line { display:flex; justify-content:space-between; margin-top:22px; font-size:32px; color:#dff0ff; }
+  .rec-ov .line b { color:#fff; }
+  .rec-two { position:absolute; left:50px; top:560px; width:1160px; display:flex; gap:30px; }
+  .rec-two .c { flex:1; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.2); border-radius:28px; padding:32px; }
+  .rec-two .c .ch { font-size:28px; color:#bfe0ff; }
+  .rec-two .c .cv { font-size:60px; font-weight:800; color:#fff; margin-top:8px; }
+  #recRight { position:absolute; left:50px; top:860px; width:1160px; height:1820px; overflow-y:auto; padding-right:20px; }
+  #recRight .rt { color:#eaf6ff; font-size:40px; font-weight:700; margin-bottom:18px; }
+  .recitem { display:flex; align-items:center; padding:26px 20px; border-bottom:1px solid rgba(255,255,255,.14); font-size:34px; color:#fff; }
+  .recitem .d { flex:1; }
+  .recitem .c2 { color:#cfe6ff; }
+  .recitem .badge { margin-left:30px; color:#90caf9; }
+  .recitem .badge.no { color:#7c8aa0; }
+  .recnote { color:#9ab8d8; font-size:28px; margin:24px 0 40px; }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <!-- 背景波浪 -->
+    <svg class="bgwave" viewBox="0 0 1400 360" preserveAspectRatio="none">
+      <path class="bw1" d="M0,120 q175,-40 350,0 t350,0 t350,0 t350,0 L1400,360 L0,360 Z"/>
+      <path class="bw2" d="M0,160 q175,-30 350,0 t350,0 t350,0 t350,0 L1400,360 L0,360 Z"/>
+    </svg>
+
+    <!-- 头部 -->
+    <div class="hd-title">今日饮水</div>
+    <div class="hd-sub">保持水润，状态在线</div>
+    <div class="hd-date" id="mDate"></div>
+
+    <!-- 顶部动态水球 -->
+    <div class="tank-cap">实时水润度</div>
+    <div id="tankWrap">
+      <svg viewBox="0 0 760 760" width="820" height="820">
+        <defs>
+          <linearGradient id="wgrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4FC3F7"/><stop offset="1" stop-color="#0D47A1"/>
+          </linearGradient>
+          <clipPath id="tankClip"><circle cx="380" cy="380" r="366"/></clipPath>
+        </defs>
+        <circle cx="380" cy="380" r="366" fill="#0c3a66"/>
+        <g clip-path="url(#tankClip)">
+          <g id="waterGroup">
+            <rect x="0" y="0" width="760" height="760" fill="url(#wgrad)"/>
+            <g class="waves">
+              <path d="M0,20 q190,-26 380,0 t380,0 t380,0 t380,0 L1520,760 L0,760 Z" fill="#81D4FA" opacity=".55"/>
+            </g>
+            <g class="waves slow">
+              <path d="M0,36 q190,26 380,0 t380,0 t380,0 t380,0 L1520,760 L0,760 Z" fill="#BBDEFB" opacity=".30"/>
+            </g>
+            <circle class="bub" cx="220" cy="700" r="10" fill="#fff" opacity=".5" style="animation-delay:.0s"/>
+            <circle class="bub" cx="430" cy="720" r="14" fill="#fff" opacity=".4" style="animation-delay:1.2s"/>
+            <circle class="bub" cx="560" cy="690" r="8"  fill="#fff" opacity=".5" style="animation-delay:2.1s"/>
+            <circle class="bub" cx="330" cy="710" r="11" fill="#fff" opacity=".4" style="animation-delay:3.0s"/>
+          </g>
+        </g>
+        <circle cx="380" cy="380" r="366" fill="none" stroke="#BBDEFB" stroke-width="10"/>
+      </svg>
+    </div>
+    <div class="tank-center">
+      <div class="tc-cups" id="mCups">0</div>
+      <div class="tc-sub" id="mPct">已完成 0%</div>
+    </div>
+
+    <!-- 数据卡 -->
+    <div class="card" id="cardStat">
+      <div class="big" id="mCups2">0</div><div class="unit">/ 8 杯</div>
+      <div class="right">已完成 <b id="mPct2">0%</b><br>约 <span id="mMl">0</span> ml</div>
+    </div>
+
+    <div class="sec-h" id="lblQuick">快速操作</div>
+    <div class="act-group">
+      <button class="act primary" id="bAdd">💧 +1 杯 <small id="bAddSub">(250ml)</small></button>
+      <button class="act ghost" id="bCheck">✓ 打卡</button>
+    </div>
+
+    <div class="sec-h" id="lblCap">每杯容量（自定义 +1 杯的水量）</div>
+    <div id="capRow">
+      <input id="capInput" type="number" value="250"/>
+      <div class="chip" data-ml="200">200</div>
+      <div class="chip on" data-ml="250">250</div>
+      <div class="chip" data-ml="350">350</div>
+      <div class="chip" data-ml="500">500</div>
+      <span style="color:#cfe6ff;font-size:26px">ml / 杯</span>
+    </div>
+
+    <div class="card" id="cardQuote">
+      <div class="qh">今日一句</div>
+      <div class="qb" id="mQuote"></div>
+    </div>
+
+    <!-- 底部工具栏：手动输入 / 查看记录（与 +1·打卡 分离） -->
+    <div id="toolbar">
+      <div class="tool" id="bManual">✎ 手动输入</div>
+      <div class="tool solid" id="bRec">☰ 查看饮水记录</div>
+      <div class="tool">提醒 <div id="sw" class="off"><span></span></div></div>
+      <div class="tool" id="bTest">🔔 测试通知</div>
+    </div>
+
+    <!-- 记录页 -->
+    <div id="screenRec">
+      <div id="recBack">‹ 返回</div>
+      <div id="recTitle">喝水记录</div>
+      <div class="rec-ov">
+        <div class="oh">今日已喝水量</div>
+        <div><span class="ob"><span id="rCups">0</span><small> 杯</small></span><span class="om" id="rMl">约 0 ml</span></div>
+        <div class="line"><span>今日打卡</span><b id="rCheck">未打卡</b></div>
+      </div>
+      <div class="rec-two">
+        <div class="c"><div class="ch">连续喝水</div><div class="cv" id="rCupStreak">0 天</div></div>
+        <div class="c"><div class="ch">连续打卡</div><div class="cv" id="rCheckStreak">0 天</div></div>
+      </div>
+      <div id="recRight">
+        <div class="rt">近 30 天明细</div>
+        <div id="rList"></div>
+        <div class="recnote">数据保存在本机（预览演示），重装/清缓存会清空</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var GOAL=8;
+  var quotes=[
+    "上善若水，水善利万物而不争——也请温柔地善待自己的身体。",
+    "你忙着赶路，别让身体在半途干涸。",
+    "一杯温水，是成年世界里最朴素的自我照顾。",
+    "把杯子端起来的那一刻，你也在认真对待此刻的自己。",
+    "水不争高下，却能润泽万物；好好喝水，也是一种成全。",
+    "慢一点，喝口水，世界不会因为你停这三秒而崩塌。"
+  ];
+  function todayStr(d){ d=d||new Date(); var y=d.getFullYear(),m=d.getMonth()+1,da=d.getDate();
+    return y+'-'+(m<10?'0'+m:m)+'-'+(da<10?'0'+da:da); }
+  var weekNames=['日','一','二','三','四','五','六'];
+
+  function getCups(date){ return parseInt(localStorage.getItem('wr_cups_'+date)||'0',10); }
+  function addCups(date,n){ localStorage.setItem('wr_cups_'+date, getCups(date)+n); }
+  function getCupMl(){ return parseInt(localStorage.getItem('wr_cupml')||'250',10)||250; }
+  function setCupMl(v){ localStorage.setItem('wr_cupml', v); }
+  function isCheck(date){ return localStorage.getItem('wr_check_'+date)==='1'; }
+  function doCheck(date){ localStorage.setItem('wr_check_'+date,'1'); }
+
+  if(!localStorage.getItem('wr_seeded')){
+    var t0=new Date();
+    for(var i=0;i<12;i++){ var dt=new Date(t0); dt.setDate(t0.getDate()-i); var ds=todayStr(dt);
+      if(i===0){ if(getCups(ds)===0) localStorage.setItem('wr_cups_'+ds,'3'); }
+      else { var c=(i%3===0)?0:(2+(i%4)); localStorage.setItem('wr_cups_'+ds,c); if(c>0) localStorage.setItem('wr_check_'+ds,'1'); } }
+    localStorage.setItem('wr_seeded','1');
+  }
+
+  function cupStreak(){ var d=new Date(),n=0; if(getCups(todayStr(d))===0) d.setDate(d.getDate()-1);
+    while(getCups(todayStr(d))>0){ n++; d.setDate(d.getDate()-1); if(n>365)break; } return n; }
+  function checkStreak(){ var d=new Date(),n=0; if(!isCheck(todayStr(d))) d.setDate(d.getDate()-1);
+    while(isCheck(todayStr(d))){ n++; d.setDate(d.getDate()-1); if(n>365)break; } return n; }
+
+  function renderMain(){
+    var t=todayStr(), cups=getCups(t), goal=GOAL, frac=Math.min(cups/goal,1), pct=Math.round(cups/goal*100);
+    document.getElementById('mCups').textContent=cups;
+    document.getElementById('mCups2').textContent=cups;
+    document.getElementById('mPct').textContent='已完成 '+pct+'%';
+    document.getElementById('mPct2').textContent=pct+'%';
+    document.getElementById('mMl').textContent=cups*getCupMl();
+    document.getElementById('waterGroup').setAttribute('transform','translate(0,'+((1-frac)*760)+')');
+    var chk=isCheck(t);
+    document.getElementById('bCheck').textContent = chk ? '✓ 已打卡' : '✓ 打卡';
+    document.getElementById('mQuote').textContent=quotes[(new Date().getDate()+new Date().getHours())%quotes.length];
+  }
+
+  function renderRec(){
+    var t=todayStr(), cups=getCups(t);
+    document.getElementById('rCups').textContent=cups;
+    document.getElementById('rMl').textContent='约 '+(cups*getCupMl())+' ml';
+    document.getElementById('rCheck').textContent=isCheck(t)?'已打卡':'未打卡';
+    document.getElementById('rCupStreak').textContent=cupStreak()+' 天';
+    document.getElementById('rCheckStreak').textContent=checkStreak()+' 天';
+    var list=document.getElementById('rList'); list.innerHTML='';
+    var today=new Date();
+    for(var i=0;i<30;i++){ var dt=new Date(today); dt.setDate(today.getDate()-i); var ds=todayStr(dt);
+      var c=getCups(ds), ck=isCheck(ds), wd=weekNames[dt.getDay()];
+      var it=document.createElement('div'); it.className='recitem';
+      it.innerHTML='<span class="d">'+ds+' 周'+wd+'</span><span class="c2">'+c+' 杯 · '+(c*getCupMl())+'ml</span>'+
+                   '<span class="badge'+(ck?'':' no')+'">'+(ck?'已打卡':'·')+'</span>';
+      list.appendChild(it); }
+  }
+
+  (function(){ var d=new Date(); document.getElementById('mDate').textContent=
+      d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日 周'+weekNames[d.getDay()]; })();
+
+  document.getElementById('bAdd').onclick=function(){ addCups(todayStr(),1); renderMain(); };
+  document.getElementById('bManual').onclick=function(){ var v=prompt('输入本次喝了几杯（将累加至今日）','1');
+    var n=parseInt(v,10); if(n>0){ addCups(todayStr(),n); renderMain(); } };
+  document.getElementById('bCheck').onclick=function(){ var t=todayStr();
+    if(isCheck(t)){ alert('今日已打卡'); } else { doCheck(t); renderMain(); alert('打卡成功'); } };
+  document.getElementById('bRec').onclick=function(){ renderRec(); document.getElementById('screenRec').classList.add('show'); };
+  document.getElementById('recBack').onclick=function(){ document.getElementById('screenRec').classList.remove('show'); };
+  document.getElementById('bTest').onclick=function(){ alert('（预览）已发送一条测试通知：\n'+quotes[new Date().getHours()%quotes.length]); };
+  var sw=document.getElementById('sw');
+  sw.onclick=function(){ sw.classList.toggle('off'); };
+
+  function syncCap(){ var ml=getCupMl();
+    document.getElementById('capInput').value=ml;
+    document.getElementById('bAddSub').textContent='('+ml+'ml)';
+    document.querySelectorAll('.chip').forEach(function(ch){ ch.classList.toggle('on', parseInt(ch.dataset.ml,10)===ml); }); }
+  document.getElementById('capInput').addEventListener('change', function(){ var v=parseInt(this.value,10); if(v>0){ setCupMl(v); syncCap(); } });
+  document.querySelectorAll('.chip').forEach(function(ch){ ch.onclick=function(){ setCupMl(parseInt(ch.dataset.ml,10)); syncCap(); }; });
+
+  function fit(){ var s=Math.min(window.innerWidth/1260, window.innerHeight/2800);
+    document.getElementById('stage').style.transform='scale('+s+')'; }
+  window.addEventListener('resize', fit); fit();
+
+  syncCap();
+  renderMain();
+})();
+</script>
+</body>
+</html>

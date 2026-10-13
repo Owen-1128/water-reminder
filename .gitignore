@@ -1,0 +1,23 @@
+# ===== Android 构建产物 =====
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+.gradle/
+local.properties
+app/build/
+build/
+captures/
+
+# ===== IDE =====
+*.iml
+.idea/
+.DS_Store
+
+# ===== 预览原型（非安卓工程必需，可保留可忽略） =====
+# preview.html
+# ui-proposals/
